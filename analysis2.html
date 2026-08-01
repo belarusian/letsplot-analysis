@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grammar of Graphics at Scale — Synthesizing Declarative Charts with High-Performance LOD</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; background: #fafbfd; color: #0f172a; line-height: 1.6; padding: 24px; max-width: 1200px; margin: 0 auto; font-size: 13px; }
+
+  /* Header */
+  .header { margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; }
+  .header h1 { color: #0f172a; font-size: 1.1rem; text-align: center; margin-bottom: 4px; font-weight: 600; letter-spacing: -0.02em; }
+  .header .subtitle { color: #6b7280; font-size: 0.75rem; text-align: center; margin-bottom: 20px; text-transform: lowercase; }
+  .header .meta-row { display: flex; justify-content: center; gap: 32px; margin-top: 0; flex-wrap: wrap; }
+  .header .meta-item { text-align: center; }
+  .header .meta-item .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 2px; }
+  .header .meta-item .value { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid; }
+  .badge-green { background: transparent; color: #059669; border-color: #a7f3d0; }
+  .badge-red { background: transparent; color: #dc2626; border-color: #fecaca; }
+  .badge-amber { background: transparent; color: #d97706; border-color: #fde68a; }
+  .badge-blue { background: transparent; color: #2563eb; border-color: #bfdbfe; }
+
+  /* Section labels */
+  .section-title { color: #6b7280; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 40px; margin-bottom: 14px; font-weight: 600; border-left: 2px solid #d1d5db; padding-left: 10px; }
+
+  /* Cards */
+  .card { border: 1px solid #e5e7eb; background: transparent; padding: 24px; margin-bottom: 20px; }
+  .card h3 { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; font-weight: 600; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 12px; text-align: left; font-size: 0.8rem; }
+  th { color: #6b7280; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  td { border-bottom: 1px solid #f3f4f6; color: #374151; }
+
+  /* Right-aligned monospace values */
+  td.mono { font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; color: #0f172a; text-align: right; font-weight: 600; }
+
+  /* Chart containers */
+  .chart-wrap { position: relative; width: 100%; min-height: 320px; margin: 20px 0; border: 1px solid #e5e7eb; padding: 16px; background: #fafbfd; }
+
+  /* Code blocks */
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; font-size: 0.75rem; color: #0f172a; }
+  pre { background: #f3f4f6; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; border: 1px solid #e5e7eb; }
+  pre code { background: none; padding: 0; color: #0f172a; font-size: 0.75rem; }
+
+  /* Highlights */
+  .highlight { color: #059669; font-weight: 600; }
+
+  /* Quote box */
+  .quote { border: 1px solid #e5e7eb; border-left-width: 3px; border-left-color: #2563eb; padding: 20px; margin: 24px 0; background: transparent; color: #374151; font-style: italic; }
+  .quote strong { color: #0f172a; font-style: normal; }
+
+  /* Warning box */
+  .warning { border: 1px solid #e5e7eb; border-left-width: 3px; border-left-color: #fbbf24; padding: 20px; margin: 24px 0; background: transparent; color: #374151; }
+  .warning strong { color: #0f172a; }
+
+  /* Footer */
+  .footer { text-align: center; color: #9ca3af; font-size: 0.7rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4, .chart-row { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Grammar of Graphics at Scale &mdash; Synthesizing Declarative Charts with High-Performance LOD Engines</h1>
+  <div class="subtitle">a second perspective on letsplot optimization &amp; the xy research</div>
+  <div style="margin-top: 24px; text-align:center;">
+    <span class="badge badge-blue" style="font-size:0.7rem; padding: 5px 12px;">Perspective 2: Statistical Charts vs. Raw Scatter at Scale</span>
+  </div>
+</div>
+
+<div class="quote">
+  <strong>Insight from LetsPlot Creator:</strong> "Для scatter с такими обьемами нужен high-performance движок определенно. Если замахиваться на такое, то надо будет добавить в арсенал. С другой стороны, в exploratory data analysis скаттер это только один тул. Множество других графиков (гистограмма например), показывают результат той или иной статистической ф-ии. Тут ggplot хорош."
+</div>
+
+<div class="card">
+  <h3>Translation &amp; Context</h3>
+  <p>"For scatter with such volumes, a high-performance engine is definitely needed. If we aim for that, we will need to add it to the arsenal. On the other hand, in exploratory data analysis, scatter is only one tool. Many other charts (for example, histogram) show the result of one or another statistical function. Here ggplot is good."</p>
+  <p>This is a profoundly accurate observation. It highlights the fundamental distinction between <strong>raw data geoms</strong> (like <code>geom_point</code>) and <strong>statistical geoms</strong> (like <code>geom_histogram</code>, <code>geom_density</code>, <code>geom_boxplot</code>). Let's explore how this distinction informs the architecture for high-performance charting.</p>
+</div>
+
+<div class="section-title">1. The GGPlot Paradigm: Strengths &amp; Bottlenecks</div>
+
+<div class="card">
+  <h3>Why ggplot is Good for Statistical Charts</h3>
+  <p>Charts like histograms, density plots, boxplots, and violin plots are inherently <strong>statistical aggregations</strong>. They take raw data and apply a statistical function (binning, quantiles, kernel density estimation) <em>before</em> rendering. The output is already a reduced dataset:</p>
+  <ul style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Histogram:</strong> Bins the data into discrete intervals, counts rows per bin.</li>
+    <li><strong>Density plot:</strong> Computes kernel density estimation, outputs a smooth curve or 2D grid.</li>
+    <li><strong>Boxplot:</strong> Computes quantiles (min, Q1, median, Q3, max), outputs 5-6 summary points.</li>
+  </ul>
+  <p>Because these geoms are already <em>statistical transformations</em>, they are naturally LOD-friendly. The data is reduced to a manageable size (often O(screen pixels) or O(bins)) before it ever reaches the rendering layer. ggplot's strength lies in this declarative mapping: <code>data + geom_histogram()</code> implies "apply the histogram stat, then render the bars."</p>
+</div>
+
+<div class="card">
+  <h3>The Scatter Plot Bottleneck</h3>
+  <p>Scatter plots are different. <code>geom_point(x, y)</code> is a <strong>raw data geom</strong>. It implies a 1:1 mapping: one mark per row. At 100k points, this is fine. At 10M or 100M points, this creates an O(N) rendering cliff:</p>
+  <ul style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>DOM-based rendering:</strong> 100M DOM nodes would crash the browser.</li>
+    <li><strong>Naive WebGL rendering:</strong> 100M vertices uploaded to the GPU every frame would exceed VRAM and bandwidth limits.</li>
+    <li><strong>Python/JS aggregation on the main thread:</strong> O(N) binning on every pan/zoom step would cause UI freezing.</li>
+  </ul>
+  <p>The creator is right: for scatter with such volumes, a high-performance engine is definitely needed. But the question is: <em>how do we maintain the declarative Grammar of Graphics spirit while solving the rendering bottleneck?</em></p>
+</div>
+
+<div class="section-title">2. The Solution: "Transparent" Render Tiers</div>
+
+<div class="card">
+  <h3>Extending the Statistical Concept to Scatter</h3>
+  <p>The insight from the <code>xy</code> library is to treat <strong>viewport-driven density aggregation</strong> as a <em>dynamic statistical function</em>. Just as <code>geom_histogram()</code> applies a binning stat, a high-performance scatter engine applies a <strong>density surface stat</strong> when the visible point count exceeds a threshold.</p>
+  <p>This is implemented via a <strong>Render Tier</strong> system that sits between the declarative spec and the WebGL renderer:</p>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Tier</th>
+        <th>Name</th>
+        <th>Representation</th>
+        <th>Trigger Condition</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>0</strong></td>
+        <td>Direct</td>
+        <td>every visible mark, exact points</td>
+        <td><code>visible_count &lt;= 200,000</code></td>
+      </tr>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>Shape-preserving reduction</td>
+        <td>per-pixel-column aggregate (M4 for lines)</td>
+        <td>Lines/areas >10k points</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>Density / aggregate surface</td>
+        <td>mean-point-color texture (512x384 grid)</td>
+        <td><code>visible_count &gt; 200,000</code></td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Out-of-core tiles</td>
+        <td>Tier-2 pyramid (4→1 exact sums)</td>
+        <td>Zoom-out beyond Tier-2 resolution</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Key Design Principle: API Stability</h3>
+  <p>The user still declares <code>xy.scatter(x, y, color=col, density=True)</code> or <code>geom_point()</code>. The engine <em>internally</em> decides whether to render Tier-0 points, Tier-2 density surface, or Tier-3 pyramid tiles based on the viewport's <code>visible_count</code>. This preserves the declarative Grammar of Graphics API while achieving 100M-point performance.</p>
+</div>
+
+<div class="section-title">3. Architecture Recommendations for LetsPlot</div>
+
+<div class="card">
+  <h3>Merging Grammar of Graphics with Native Aggregation Kernels</h3>
+  <ol style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Keep the declarative API intact:</strong> <code>geom_point()</code>, <code>geom_histogram()</code>, etc. should remain the user-facing syntax.</li>
+    <li><strong>For <code>geom_point</code> with N &gt; 200k, automatically switch to a "density surface" geom internally:</strong> But keep the color/alpha semantics using mean-color compositing (alpha-weighted mean of resolved colors in linear light).</li>
+    <li><strong>Implement aggregation in a native core (Rust/Kotlin/Scala):</strong> Avoid Python/JS O(N) bottlenecks on zoom/pan. The 2D binning with mean-color compositing should happen in a native kernel (like XY's Rust <code>bin_2d_mean_color</code>).</li>
+    <li><strong>Pre-compute multi-resolution pyramids for static datasets:</strong> For datasets that don't change, build 4→1 count pyramids at load time so zoom-out queries are O(visible cells), not O(N).</li>
+    <li><strong>Use offset-encoded f32 geometry &amp; uniform-only pan/zoom:</strong> For the Tier-0 (direct) path, store geometry as relative f32 coordinates <code>(v - offset) * scale</code> and update only two vec2 uniforms per mark in the WebGL shader.</li>
+  </ol>
+</div>
+
+<div class="warning">
+  <strong>Validating the Direction:</strong> The LetsPlot creator's insight is correct: ggplot is good for statistical charts because they are already aggregated. But for scatter at scale, you must extend the "statistical function" concept to include <em>viewport-driven density aggregation</em>. This doesn't break the Grammar of Graphics; it enhances it by making the "stat" layer aware of the viewport's resolution and the data's volume.
+</div>
+
+<div class="section-title">4. Technical Deep Dive: Mean-Color Compositing</div>
+
+<div class="card">
+  <h3>Preserving Aesthetics in Aggregation</h3>
+  <p>When switching from Tier-0 (points) to Tier-2 (density surface), a critical challenge is preserving the user's color and alpha aesthetics. The <code>xy</code> library solves this with <strong>physical alpha compositing</strong> and <strong>alpha-weighted mean color in linear light</strong>:</p>
+  <ul style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Displayed alpha:</strong> For a cell with k points, each with per-point alpha <code>a_pt</code>, the displayed alpha is <code>1 − (1 − a_pt)^k</code>. This saturates after a few points exactly like real overplotted marks do.</li>
+    <li><strong>Mean color:</strong> Each point contributes its exact sRGB color, weighted by its straight alpha, summed in linear light (integer pipeline: checked-in sRGB⇄linear-u16 tables, u64 sums), then quantized back to sRGB. This ensures the aggregate view and the point view are two magnifications of the same picture, not two different charts.</li>
+  </ul>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Research compiled from <code>reflex-dev/xy</code> GitHub repository — July 2026<br>
+  Prepared for technical review with LetsPlot maintainers &mdash; Perspective 2
+</div>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>High-Performance Charting — Technical Deep Dive for LetsPlot</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; background: #fafbfd; color: #0f172a; line-height: 1.6; padding: 24px; max-width: 1200px; margin: 0 auto; font-size: 13px; }
+
+  /* Header */
+  .header { margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; }
+  .header h1 { color: #0f172a; font-size: 1.1rem; text-align: center; margin-bottom: 4px; font-weight: 600; letter-spacing: -0.02em; }
+  .header .subtitle { color: #6b7280; font-size: 0.75rem; text-align: center; margin-bottom: 20px; text-transform: lowercase; }
+  .header .meta-row { display: flex; justify-content: center; gap: 32px; margin-top: 0; flex-wrap: wrap; }
+  .header .meta-item { text-align: center; }
+  .header .meta-item .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 2px; }
+  .header .meta-item .value { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border: 1px solid; }
+  .badge-green { background: transparent; color: #059669; border-color: #a7f3d0; }
+  .badge-red { background: transparent; color: #dc2626; border-color: #fecaca; }
+  .badge-amber { background: transparent; color: #d97706; border-color: #fde68a; }
+  .badge-blue { background: transparent; color: #2563eb; border-color: #bfdbfe; }
+
+  /* Section labels */
+  .section-title { color: #6b7280; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 40px; margin-bottom: 14px; font-weight: 600; border-left: 2px solid #d1d5db; padding-left: 10px; }
+
+  /* Cards */
+  .card { border: 1px solid #e5e7eb; background: transparent; padding: 24px; margin-bottom: 20px; }
+  .card h3 { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; font-weight: 600; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 12px; text-align: left; font-size: 0.8rem; }
+  th { color: #6b7280; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  td { border-bottom: 1px solid #f3f4f6; color: #374151; }
+
+  /* Right-aligned monospace values */
+  td.mono { font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; color: #0f172a; text-align: right; font-weight: 600; }
+
+  /* Chart containers */
+  .chart-wrap { position: relative; width: 100%; min-height: 320px; margin: 20px 0; border: 1px solid #e5e7eb; padding: 16px; background: #fafbfd; }
+
+  /* Code blocks */
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono','Cascadia Code','Fira Code',monospace; font-size: 0.75rem; color: #0f172a; }
+  pre { background: #f3f4f6; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; border: 1px solid #e5e7eb; }
+  pre code { background: none; padding: 0; color: #0f172a; font-size: 0.75rem; }
+
+  /* Highlights */
+  .highlight { color: #059669; font-weight: 600; }
+
+  /* Warning box */
+  .warning { border: 1px solid #e5e7eb; border-left-width: 3px; border-left-color: #fbbf24; padding: 20px; margin: 24px 0; background: transparent; color: #374151; }
+  .warning strong { color: #0f172a; }
+
+  /* Footer */
+  .footer { text-align: center; color: #9ca3af; font-size: 0.7rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4, .chart-row { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>High-Performance Charting &mdash; Technical Deep Dive</h1>
+  <div class="subtitle">research findings from <code>xy</code> (reflex.dev) for <span class="badge badge-green">letsplot</span> optimization</div>
+  <div style="margin-top: 24px; text-align:center;">
+    <span class="badge badge-blue" style="font-size:0.7rem; padding: 5px 12px;">Context: Grammar of Graphics &amp; ggplot2 Bridge</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>The Challenge</h3>
+  <p>Lets-Plot is a multiplatform plotting library built on the principles of the Grammar of Graphics, bringing the ggplot2 experience to Python. However, most charting libraries (including those using ggplot2 paradigms) stop being usable somewhere in the <span class="highlight">hundreds of thousands of points</span>. Working at scale normally means downsampling your data first or using sampling.</p>
+  <p>The open-source library <code>xy</code> by Reflex.dev renders a scatter plot of <span class="highlight">100 million points</span> that you can pan and zoom through in real time — without any pre-downsampling. Performance metrics: <code>0.071s at 10k</code> and <code>0.081s at 100M</code>, flat across four orders of magnitude.</p>
+</div>
+
+<div class="section-title">Core Architecture — How XY Achieves This</div>
+
+<div class="card">
+  <h3>1. Rust Core Engine (<code>src/</code>)</h3>
+  <ul style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Zone maps &amp; M4 decimation:</strong> For lines/areas, keeps first/min/max/last per pixel column — provably pixel-accurate for rasterized lines (Jugel et al., VLDB 2014)</li>
+    <li><strong>Mean-color density grids:</strong> For scatter plots &gt;200k points, bins viewport into a 512x384 grid. Each cell stores the alpha-weighted MEAN of resolved colors in linear light (integer pipeline: checked-in sRGB⇄linear-u16 tables, u64 sums — bitwise deterministic across thread counts)</li>
+    <li><strong>Multi-resolution count pyramid:</strong> Tier-3 out-of-core tiles where level 0 is <code>base_dim²</code>, each higher level is a 4→1 exact sum (u64 accumulate, saturating to u32), so every level conserves total count bit-exactly</li>
+    <li><strong>AVX2 SIMD acceleration:</strong> Branch-free vectorized scans for min_max (+89%), bin_2d (+~50%), local-density gather (+~42%)</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>2. WebGL2 Renderer (<code>js/src/</code>)</h3>
+  <ul style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Four-surface layering:</strong> 2D chrome canvas → GL canvas (marks) → 2D overlay canvas (annotations) → DOM (labels/tooltip/legend)</li>
+    <li><strong>Uniform-only pan/zoom:</strong> Geometry is static offset-encoded f32; view changes touch two vec2 uniforms per mark (<code>_map</code>) — nothing below may regress this</li>
+    <li><strong>LOD orchestration (<code>45_lod.ts</code>):</strong> tier selection, drill enter/exit hysteresis, cross-tier fades, and retained tier caches</li>
+  </ul>
+</div>
+
+<div class="section-title">The Tier Ladder System</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Tier</th>
+        <th>Name</th>
+        <th>Representation</th>
+        <th>Cost model</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>0</strong></td>
+        <td>Direct</td>
+        <td>every visible mark, exact</td>
+        <td>O(visible) verts</td>
+      </tr>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>Shape-preserving reduction</td>
+        <td>per-pixel-column aggregate (M4 for lines)</td>
+        <td>O(px) verts</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>Density / aggregate surface</td>
+        <td>mean-point-color texture composited at points' own alpha</td>
+        <td>O(screen) texels</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Out-of-core tiles</td>
+        <td>Tier-2 pyramid where not all tiles are resident</td>
+        <td>O(visible tiles)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section-title">Python LOD Logic &amp; Thresholds</div>
+
+<div class="card">
+  <h3>Key Configuration Constants (<code>python/xy/config.py</code>)</h3>
+  <pre><code># Lines longer than this ship M4-decimated (Tier 1)
+DECIMATION_THRESHOLD = 10_000
+
+# Scatter above this many points switches to Tier-2 density aggregation
+SCATTER_DENSITY_THRESHOLD = 200_000
+
+# Absolute direct-draw ceiling; above this, density is forced even with per-point channels
+DIRECT_SOFT_CEILING = 2_000_000
+
+# Hysteresis on the drill boundary: once drilled to points, stay until count clearly exceeds budget again
+DRILL_EXIT_FACTOR = 1.15</code></pre>
+</div>
+
+<div class="card">
+  <h3>Drill Decision Logic (<code>python/xy/lod.py</code>)</h3>
+  <p>The render tier is a function of the <em>visible</em> point count, hysteresis-guarded:</p>
+  <pre><code>def drill_decision(visible: int, budget: float, in_drill: bool) -&gt; bool:
+    """Once drilled down to real points, stay until the count clearly exceeds the budget again."""
+    return visible &lt;= budget * (DRILL_EXIT_FACTOR if in_drill else 1.0)</code></pre>
+</div>
+
+<div class="warning">
+  <strong>Key Insight for LetsPlot:</strong> The secret is that XY never ships O(N) data to the browser for large datasets. Above 200k points, it computes a screen-bounded density surface (512x384 grid max) in Rust, and pan/zoom triggers re-binning in the Rust core — not in JavaScript or Python on the main thread. The WebGL shader composites colors using physical alpha blending: <code>1 − (1 − a_pt)^k</code> for k points with per-point alpha <code>a_pt</code>.
+</div>
+
+<div class="section-title">What This Means for LetsPlot</div>
+
+<div class="card">
+  <h3>Recommended Architecture Upgrades</h3>
+  <ol style="padding-left: 20px; margin-top: 8px;">
+    <li><strong>Move aggregation to a native core:</strong> Implement Rust or C++ kernels for 2D binning with mean-color compositing. Python NumPy is too slow for O(N) zoom steps at 10M+ rows.</li>
+    <li><strong>Implement multi-resolution pyramids:</strong> Pre-compute 4→1 count pyramids at build time so zoom-out queries are O(visible cells), not O(N).</li>
+    <li><strong>Use offset-encoded f32 geometry:</strong> Store geometry as relative f32 coordinates <code>(v - offset) * scale</code> so large-magnitude domains keep the digits that matter.</li>
+    <li><strong>Uniform-only view transformations:</strong> Pan/zoom should only update two vec2 uniforms per mark in the WebGL shader, never re-upload geometry.</li>
+    <li><strong>Hysteresis-guarded LOD transitions:</strong> Prevent thrashing between density and point modes when the visible count hovers near the threshold.</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h3>Mean-Color Compositing Formula</h3>
+  <p>For a cell with k points, each with per-point alpha <code>a_pt</code>, the displayed alpha is the physical compositing:</p>
+  <pre><code>display_alpha = 1 − (1 − a_pt)^k</code></pre>
+  <p>This saturates after a few points exactly like real overplotted marks do. The color is the alpha-weighted mean of resolved colors in linear light (integer pipeline: checked-in sRGB⇄linear-u16 tables, u64 sums — bitwise deterministic).</p>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Research compiled from <code>reflex-dev/xy</code> GitHub repository — July 2026<br>
+  Prepared for technical review with LetsPlot maintainers
+</div>
+
+</body>
+</html>
