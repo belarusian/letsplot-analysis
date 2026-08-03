@@ -3,3 +3,5 @@ __pycache__/
 letsplot_charts/
 .env
 *.egg-info/
+lets-plot-images/
+*.svg
