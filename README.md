@@ -22,10 +22,10 @@ fix      : G'  -- (Spec, error, ctx) → Spec | None
 emit     : IO  -- (Spec, Artifact, ...) → Result[Path]
 ```
 
-**The flow:** `G → V1 → (V2 → G' → V2)* → emit`
+**The flow:** `(G → V1 → (V2 → [G'] → V2)* → emit)*`
 
 - **Outer loop** (`max_rounds`): wholesale generation. The model produces a new spec from context. If the ouroboros can't fix it, the spec is discarded and errors become feedback — learnings travel forward even when the page is scrapped.
-- **Inner loop** (`max_fixes`): ouroboros repair. The model receives its own prior output + the error and returns a corrected version. Same type in, same type out. Spec is never discarded within this loop.
+- **Inner loop** (`max_fixes`): ouroboros repair. On V2 failure, G' receives the spec + error and returns a corrected version. Same type in, same type out. Spec is never discarded within this loop.
 - **Result monad** (`Ok[T] | Err[E]`): carries errors through the pipeline without explicit try/catch. Every step returns `Result`, composed via bind/flatMap (implemented with Python `match`).
 
 **Total budget:** `max_rounds × max_fixes` iterations.
