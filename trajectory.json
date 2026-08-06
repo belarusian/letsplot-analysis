@@ -1,0 +1,26 @@
+{
+  "outcome": "exit:task_complete",
+  "messages": [
+    {
+      "role": "system",
+      "content": ""
+    },
+    {
+      "role": "user",
+      "content": "List .py files in /tmp"
+    },
+    {
+      "role": "assistant",
+      "content": "[{\"tool_call_id\": \"C92k8aQ4IzW2JjuFJutXVDJIjxNRxf6K\", \"name\": \"bash\", \"arguments\": \"{\\\"command\\\":\\\"find /tmp -maxdepth 1 -name \\\\\\\"*.py\\\\\\\" -type f\\\"}\"}]"
+    },
+    {
+      "role": "tool",
+      "content": "<returncode>0</returncode>\n<output>\n\n</output>",
+      "tool_call_id": "C92k8aQ4IzW2JjuFJutXVDJIjxNRxf6K"
+    },
+    {
+      "role": "assistant",
+      "content": "There are no `.py` files currently located in the `/tmp` directory."
+    }
+  ]
+}
