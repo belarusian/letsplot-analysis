@@ -77,7 +77,8 @@ def invoke_model(
         ctx,
         suffix_lines=(
             "Write a FourAgentSpec(...) expression.",
-            "Put the COMPLETE agent source code INLINE in the source field.",
+            "Put the COMPLETE agent source code as a TRIPLE-QUOTED string in the source field.",
+            "Triple quotes avoid escaping issues with newlines and special characters.",
             "No markdown fencing.",
             "",
             "Guidelines:",
@@ -89,6 +90,7 @@ def invoke_model(
             "- Call run(G=debug_g, V1=v1, V2=v2, emit=emit, ...) at the end",
             "- Keep the code under 100 lines",
             "- All code must be syntactically valid Python",
+            "- Use triple quotes: source=\"\"\"...\"\"\"",
         ),
     )
 
@@ -189,18 +191,33 @@ def _extract_source(body: str) -> str:
         while i < len(body):
             ch = body[i]
             if ch == '\\' and i + 1 < len(body):
+                # Handle escape sequences
+                next_ch = body[i+1]
+                if next_ch == 'n':
+                    # This might be \n in the model output
+                    # Keep scanning to find the actual closing quote
+                    pass
                 i += 2
                 continue
             if ch == quote_char:
                 rest = body[i+1:].lstrip()
                 if rest.startswith(')') or rest.startswith('),') or rest == '':
-                    return body[source_start:i].encode().decode('unicode_escape', errors='replace')
+                    extracted = body[source_start:i]
+                    # Try to decode unicode escape sequences
+                    try:
+                        return extracted.encode().decode('unicode_escape', errors='replace')
+                    except:
+                        return extracted
             i += 1
 
     # Last resort: everything after source= until the end
     m = re.search(r"source\s*=\s*['\"]?", body)
     if m:
-        return body[m.end():].rstrip(')"\'').encode().decode('unicode_escape', errors='replace')
+        extracted = body[m.end():].rstrip(')"\'')
+        try:
+            return extracted.encode().decode('unicode_escape', errors='replace')
+        except:
+            return extracted
 
     return ""
 

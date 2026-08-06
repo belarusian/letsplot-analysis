@@ -21,14 +21,18 @@ class FourAgentSpec:
 
     A Python script that implements a four-function algebra agent runner.
 
-    Response format -- Python constructor with inline source:
+    Response format -- Python constructor with source as triple-quoted string:
 
     FourAgentSpec(
         title="Bash Agent",
         description="Runs a four-style agent with chat variant",
         variant="chat",
         system_prompt="You are a bash agent...",
-        source="#!/usr/bin/env python3\nimport ...\n\ndef main():\n    ...\n",
+        source=\"\"\"#!/usr/bin/env python3
+import ...
+def main():
+    ...
+\"\"\",
     )
     """
     title: str

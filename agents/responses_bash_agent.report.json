@@ -1,0 +1,9 @@
+{
+  "version": 0,
+  "rounds": 1,
+  "ouroboros_fixes": 0,
+  "outcome": "success",
+  "validators": [],
+  "claim": "Responses Bash Agent",
+  "user_prompt": "Convert this chat variant agent to the responses variant. Replace litellm_invoke with http_response_invoke from four.response_model, and use toolcall_parse for parsing.\n\nKeep the rest of the agent structure the same, only modify what's necessary to implement this change."
+}

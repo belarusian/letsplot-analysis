@@ -1,0 +1,9 @@
+{
+  "version": 0,
+  "rounds": 1,
+  "ouroboros_fixes": 0,
+  "outcome": "success",
+  "validators": [],
+  "claim": "Bash Toolcall Agent",
+  "user_prompt": "Convert this chat variant agent to the toolcall variant. Replace litellm_invoke with litellm_toolcall_invoke, add a tools list with a bash function definition, and use toolcall_parse instead of regex_parse.\n\nKeep the rest of the agent structure the same, only modify what's necessary to implement this change."
+}
