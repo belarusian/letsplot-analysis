@@ -27,17 +27,19 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
 from compass.generators._types import (
+    DomainSection,
     Err,
     GenerationContext,
     GenerationReport,
     Ok,
     Result,
 )
-from compass.generators._loop import generation_loop, refine_context, result_to_exit
+from compass.generators._loop import generation_loop, result_to_exit
 
 from ._types import FourAgentSpec, validate_spec_instance
 from ._runtime import (
@@ -139,17 +141,19 @@ def run(
 
     if refine:
         artifact_path, claim = refine
-        match refine_context(
-            ctx, artifact_path, claim,
-            load=load_agent,
-            serialize=lambda spec: spec.source,
-        ):
-            case Err() as e:
-                return e
-            case Ok(resolved):
-                ctx = resolved
+        # Load raw file content for refinement context
+        raw_content = Path(artifact_path).read_text()
+        ctx = ctx.with_domain(DomainSection(
+            heading="Existing Agent (modify according to claim)",
+            content=raw_content,
+        ))
+        ctx = ctx.with_prompt(f"{claim}\n\nKeep the rest of the agent structure the same, only modify what's necessary to implement this change.")
     else:
         ctx = ctx.with_prompt(prompt or "")
+
+    # Use FIVE_BASE_URL if base_url is not explicitly set
+    if not base_url:
+        base_url = os.getenv("FIVE_BASE_URL", base_url)
 
     if dry_run:
         from compass.generators._invoke import build_system_prompt, build_user_message
