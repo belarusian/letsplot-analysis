@@ -86,13 +86,13 @@ def generation_loop(
             case Ok(raw):
                 pass
 
-        match parse(raw):
-            case Err(e):
-                msg = f"[Round {round_num}] Type error: {e}"
-                ctx = ctx.with_feedback(msg)
-                continue
-            case Ok(spec):
-                pass
+        parsed_result = parse(raw)
+        if isinstance(parsed_result, Ok):
+            spec = parsed_result.value
+        else:
+            msg = f"[Round {round_num}] Type error: {parsed_result.error}"
+            ctx = ctx.with_feedback(msg)
+            continue
 
         logger.info("Spec parsed successfully")
 
