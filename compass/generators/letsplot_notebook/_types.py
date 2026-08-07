@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from compass.generators._types import Err, Ok, Result
+from four.generators._types import Err, Ok, Result
 
 
 @dataclass(frozen=True)

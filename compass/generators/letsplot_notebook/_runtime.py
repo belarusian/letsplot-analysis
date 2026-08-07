@@ -13,19 +13,19 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from compass.generators._types import (
+from four.generators._types import (
     AskFn,
     Err,
     GenerationContext,
     Ok,
     Result,
 )
-from compass.generators._invoke import (
+from four.generators._invoke import (
     build_system_prompt,
     build_user_message,
     resolve_ask_fn,
 )
-from compass.generators._validation import (
+from four.generators._validation import (
     validate_python_sources,
 )
 

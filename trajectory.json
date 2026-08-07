@@ -3,7 +3,7 @@
   "messages": [
     {
       "role": "system",
-      "content": ""
+      "content": "You are a bash agent. You solve tasks by executing bash commands. Wrap each command in a ```bash ... ``` block. When the task is fully done, respond with plain text instead of a code block."
     },
     {
       "role": "user",
@@ -11,16 +11,16 @@
     },
     {
       "role": "assistant",
-      "content": "[{\"tool_call_id\": \"C92k8aQ4IzW2JjuFJutXVDJIjxNRxf6K\", \"name\": \"bash\", \"arguments\": \"{\\\"command\\\":\\\"find /tmp -maxdepth 1 -name \\\\\\\"*.py\\\\\\\" -type f\\\"}\"}]"
+      "content": "[{\"tool_call_id\": \"call_mGmISvlNX7tcqJihCTVhlO7mgDroKfLN\", \"name\": \"bash\", \"arguments\": \"{\\\"command\\\":\\\"find /tmp -maxdepth 1 -name \\\\\\\"*.py\\\\\\\" -type f\\\"}\"}]"
     },
     {
       "role": "tool",
       "content": "<returncode>0</returncode>\n<output>\n\n</output>",
-      "tool_call_id": "C92k8aQ4IzW2JjuFJutXVDJIjxNRxf6K"
+      "tool_call_id": "call_mGmISvlNX7tcqJihCTVhlO7mgDroKfLN"
     },
     {
       "role": "assistant",
-      "content": "There are no `.py` files currently located in the `/tmp` directory."
+      "content": "There are no `.py` files in the `/tmp` directory."
     }
   ]
 }
