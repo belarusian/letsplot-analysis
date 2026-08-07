@@ -6,18 +6,18 @@ V_letsplot  : syntax check + exec all code cells (generates charts)
 G'_letsplot : (LetsPlotNotebookSpec, Error) -> NotebookPatch -> LetsPlotNotebookSpec
 
 Usage:
-    python -m compass.generators.letsplot_notebook.generate \\
+    python -m four.generators.letsplot_notebook.generate \\
         --prompt "Create a notebook comparing geom_hex and geom_pointdensity" \\
         --output-dir ./notebooks
 
-    python -m compass.generators.letsplot_notebook.generate \\
+    python -m four.generators.letsplot_notebook.generate \\
         --prompt "Show marginal plots with ggmarginal" --dry-run
 
     # Interactive REPL
-    python -m compass.generators.letsplot_notebook.generate --live
+    python -m four.generators.letsplot_notebook.generate --live
 
     # Refine existing notebook
-    python -m compass.generators.letsplot_notebook.generate \\
+    python -m four.generators.letsplot_notebook.generate \\
         --refine notebooks/scatter_analysis.ipynb \\
         --claim "Add a geom_density2d comparison"
 """
@@ -30,14 +30,14 @@ import logging
 import sys
 from pathlib import Path
 
-from compass.generators._types import (
+from four.generators._types import (
     Err,
     GenerationContext,
     GenerationReport,
     Ok,
     Result,
 )
-from compass.generators._loop import generation_loop, refine_context, result_to_exit
+from four.generators._loop import generation_loop, refine_context, result_to_exit
 
 from ._types import LetsPlotNotebookSpec, validate_spec_instance
 from ._runtime import (
@@ -155,7 +155,7 @@ def run(
         ctx = ctx.with_prompt(prompt)
 
     if dry_run:
-        from compass.generators._invoke import build_system_prompt, build_user_message
+        from four.generators._invoke import build_system_prompt, build_user_message
         system = build_system_prompt(
             ctx,
             (Path(__file__).parent / "_types.py").read_text(),
@@ -257,7 +257,7 @@ def main() -> int:
         logging.basicConfig(level=logging.INFO)
 
     if args.live:
-        from compass.generators._loop import repl_loop
+        from four.generators._loop import repl_loop
 
         ctx = build_letsplot_context()
         return result_to_exit(repl_loop(

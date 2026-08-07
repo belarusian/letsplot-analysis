@@ -6,7 +6,7 @@ into the model's system prompt.
 
 from __future__ import annotations
 
-from compass.generators._types import DomainSection, GenerationContext
+from four.generators._types import DomainSection, GenerationContext
 
 # Key geoms and their use cases
 _LETSPLOT_GEOMS = """\
